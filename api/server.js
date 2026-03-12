@@ -22,16 +22,15 @@ export default async function handler(req, res) {
     ];
 
     try {
-
         const promises = urls.map(async (item) => {
             try {
                 const r = await fetch(item.url);
                 const body = await r.text();
 
+                // If the body DOES NOT contain "bucket_not_found", the bucket exists
                 if (!body.includes("bucket_not_found")) {
-                    return `🔹 ${item.dc} : Bucket Exists`;
+                    return `🔹 ${item.dc} → Bucket Exists`;
                 }
-
                 return null;
             } catch {
                 return null;
@@ -41,20 +40,17 @@ export default async function handler(req, res) {
         const results = (await Promise.all(promises)).filter(Boolean);
 
         let msg;
-
         if (results.length === 0) {
-            msg = `🪣 Bucket : ${bucketName}
-✅ Status : AVAILABLE`;
+            msg = `🪣 Bucket: ${bucketName}\n✅ Status: AVAILABLE`;
         } else {
-            msg = `🪣 Bucket : ${bucketName}
-🚨 Status : TAKEN
-
-${results.join("\n")}`;
+            msg = `🪣 Bucket: ${bucketName}\n🚨 Status: TAKEN\n\n${results.join("\n")}`;
         }
 
-        res.status(200).json({ text: msg });
+        // sending as a clean string so Zoho doesn't double-encode it
+        res.setHeader('Content-Type', 'text/plain');
+        return res.status(200).send(msg);
 
     } catch (e) {
-        res.status(500).json({ text: e.message });
+        return res.status(500).send(`Error: ${e.message}`);
     }
 }
